@@ -2,6 +2,15 @@
 
 A daily JavaScript coding challenge Chrome extension that replaces your new tab.
 
+## Download
+
+Latest build is generated automatically on every push to `main`.
+
+1. Go to [Actions](https://github.com/maicolsantos/js-daily/actions/workflows/build.yml)
+2. Click the most recent run
+3. Download the artifact `js-daily-<sha>` under **Artifacts**
+4. Unzip and [load unpacked](#load-in-chrome) in Chrome
+
 ## Setup
 
 ### Prerequisites
