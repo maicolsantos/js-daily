@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { TopBar } from './components/TopBar'
 import { ProblemPanel } from './components/ProblemPanel'
 import { EditorPanel } from './components/EditorPanel'
@@ -13,6 +13,29 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('problem')
   const [justSolved, setJustSolved] = useState(false)
   const alreadySolvedOnLoad = useRef(false)
+  const [leftPct, setLeftPct] = useState(40)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+
+  const onMouseDown = useCallback(() => { dragging.current = true }, [])
+
+  useEffect(() => {
+    const MIN = 20
+    const MAX = 80
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragging.current || !containerRef.current) return
+      const { left, width } = containerRef.current.getBoundingClientRect()
+      const pct = ((e.clientX - left) / width) * 100
+      setLeftPct(Math.min(MAX, Math.max(MIN, pct)))
+    }
+    const onMouseUp = () => { dragging.current = false }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   if (!loaded || !challenge) {
     return (
@@ -63,11 +86,15 @@ export default function App() {
           </button>
         </div>
       ) : (
-        <main className="flex flex-1 min-h-0">
-          <div className="w-[40%] border-r border-border overflow-hidden">
+        <main ref={containerRef} className="flex flex-1 min-h-0">
+          <div style={{ width: `${leftPct}%` }} className="overflow-hidden">
             <ProblemPanel challenge={challenge} activeTab={activeTab} />
           </div>
-          <div className="w-[60%] overflow-hidden">
+          <div
+            onMouseDown={onMouseDown}
+            className="w-1 cursor-col-resize bg-border hover:bg-easy/50 active:bg-easy/70 shrink-0 transition-colors"
+          />
+          <div style={{ width: `${100 - leftPct}%` }} className="overflow-hidden">
             {(
               <EditorPanel
                 challenge={challenge}
