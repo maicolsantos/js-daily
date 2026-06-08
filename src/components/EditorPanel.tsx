@@ -15,6 +15,8 @@ interface Props {
 
 type Lang = 'javascript' | 'typescript'
 
+const RUN_SHORTCUT = navigator.platform.includes('Mac') ? '⌘↵' : 'Ctrl+↵'
+
 export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solved, showSolution }: Props) {
   const [lang, setLang] = useState<Lang>('javascript')
   const [results, setResults] = useState<TestResult[]>([])
@@ -98,7 +100,7 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
           {running ? 'Running…' : 'Run'}
           {!running && (
             <span className="text-easy/50 text-xs font-normal">
-              {navigator.platform.includes('Mac') ? '⌘↵' : 'Ctrl+↵'}
+              {RUN_SHORTCUT}
             </span>
           )}
         </button>
