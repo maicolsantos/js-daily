@@ -68,11 +68,7 @@ export default function App() {
             <ProblemPanel challenge={challenge} activeTab={activeTab} />
           </div>
           <div className="w-[60%] overflow-hidden">
-            {activeTab === 'discussion' ? (
-              <div className="flex items-center justify-center h-full text-muted text-sm">
-                Discussion coming soon.
-              </div>
-            ) : (
+            {(
               <EditorPanel
                 challenge={challenge}
                 savedCode={data.code[challenge.id]}
