@@ -1,19 +1,13 @@
-import { useMemo } from 'react'
-import { challenges } from '../data/challenges'
+import { useEffect, useState } from 'react'
 import { Challenge } from '../types/challenge'
+import { getChallengeOfTheDay } from '../data/challenges'
 
-function dateHash(dateStr: string): number {
-  let hash = 0
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash * 31 + dateStr.charCodeAt(i)) >>> 0
-  }
-  return hash
-}
+export function useChallenge(): Challenge | null {
+  const [challenge, setChallenge] = useState<Challenge | null>(null)
 
-export function useChallenge(): Challenge {
-  return useMemo(() => {
-    const today = new Date().toDateString()
-    const idx = dateHash(today) % challenges.length
-    return challenges[idx]
+  useEffect(() => {
+    getChallengeOfTheDay().then(setChallenge)
   }, [])
+
+  return challenge
 }

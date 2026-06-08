@@ -1,7 +1,10 @@
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Challenge, Difficulty } from '../types/challenge'
 
 interface Props {
   challenge: Challenge
+  activeTab?: 'problem' | 'solution' | 'discussion'
 }
 
 const difficultyColors: Record<Difficulty, string> = {
@@ -10,7 +13,54 @@ const difficultyColors: Record<Difficulty, string> = {
   hard: 'text-hard bg-hard/10',
 }
 
-export function ProblemPanel({ challenge }: Props) {
+function Md({ children }: { children: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="text-sm text-muted leading-relaxed mb-2">{children}</p>,
+        code: ({ children, className }) => {
+          const isBlock = className?.includes('language-')
+          return isBlock
+            ? <code className="block bg-bg border border-border rounded p-3 text-xs font-mono text-[#e6edf3] overflow-x-auto my-2 whitespace-pre">{children}</code>
+            : <code className="bg-bg border border-border rounded px-1 py-0.5 text-xs font-mono text-[#e6edf3]">{children}</code>
+        },
+        pre: ({ children }) => <>{children}</>,
+        strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+        ul: ({ children }) => <ul className="list-disc list-inside space-y-1 text-sm text-muted">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 text-sm text-muted">{children}</ol>,
+        li: ({ children }) => <li className="text-sm text-muted">{children}</li>,
+        h1: ({ children }) => <h1 className="text-base font-semibold text-white mt-3 mb-1">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-sm font-semibold text-white mt-3 mb-1">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-medium text-white mt-2 mb-1">{children}</h3>,
+        a: ({ href, children }) => <a href={href} className="text-blue-400 underline" target="_blank" rel="noreferrer">{children}</a>,
+        img: () => null,
+      }}
+    >
+      {children}
+    </ReactMarkdown>
+  )
+}
+
+export function ProblemPanel({ challenge, activeTab }: Props) {
+  if (activeTab === 'solution') {
+    return (
+      <div className="h-full overflow-y-auto p-5 space-y-5 text-[#e6edf3]">
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-lg font-semibold">{challenge.title}</h1>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${difficultyColors[challenge.difficulty]}`}>
+            {challenge.difficulty}
+          </span>
+        </div>
+        {challenge.solution ? (
+          <Md>{challenge.solution}</Md>
+        ) : (
+          <p className="text-sm text-muted">No solution available for this problem yet.</p>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="h-full overflow-y-auto p-5 space-y-5 text-[#e6edf3]">
       <div>
@@ -22,7 +72,7 @@ export function ProblemPanel({ challenge }: Props) {
             {challenge.difficulty}
           </span>
         </div>
-        <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap">{challenge.description}</p>
+        <Md>{challenge.description}</Md>
       </div>
 
       {challenge.examples.length > 0 && (

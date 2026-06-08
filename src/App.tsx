@@ -11,34 +11,29 @@ export default function App() {
   const challenge = useChallenge()
   const { data, loaded, saveCode, markSolved } = useStorage()
   const [activeTab, setActiveTab] = useState<Tab>('problem')
-  // true only when user solved during this session (not on prior load)
   const [justSolved, setJustSolved] = useState(false)
-
-  const today = new Date().toDateString()
-  const solvedToday = data.solvedIds.includes(challenge.id) && data.lastSolvedDate === today
-  // show "come back tomorrow" only if already solved before this session started
   const alreadySolvedOnLoad = useRef(false)
-  if (loaded && !alreadySolvedOnLoad.current && solvedToday && !justSolved) {
-    alreadySolvedOnLoad.current = true
-  }
-  const showComeBack = alreadySolvedOnLoad.current && !justSolved && activeTab === 'problem'
 
-  const handleCodeChange = useCallback(
-    (code: string) => saveCode(challenge.id, code),
-    [challenge.id, saveCode]
-  )
-
-  const handleSolved = useCallback(async () => {
-    await markSolved(challenge.id)
-    setJustSolved(true)
-  }, [challenge.id, markSolved])
-
-  if (!loaded) {
+  if (!loaded || !challenge) {
     return (
       <div className="flex items-center justify-center h-screen bg-bg text-muted text-sm">
         Loading…
       </div>
     )
+  }
+
+  const today = new Date().toDateString()
+  const solvedToday = data.solvedIds.includes(challenge.id) && data.lastSolvedDate === today
+
+  if (loaded && !alreadySolvedOnLoad.current && solvedToday && !justSolved) {
+    alreadySolvedOnLoad.current = true
+  }
+  const showComeBack = alreadySolvedOnLoad.current && !justSolved && activeTab === 'problem'
+
+  const handleCodeChange = (code: string) => saveCode(challenge.id, code)
+  const handleSolved = async () => {
+    await markSolved(challenge.id)
+    setJustSolved(true)
   }
 
   return (
@@ -70,7 +65,7 @@ export default function App() {
       ) : (
         <main className="flex flex-1 min-h-0">
           <div className="w-[40%] border-r border-border overflow-hidden">
-            <ProblemPanel challenge={challenge} />
+            <ProblemPanel challenge={challenge} activeTab={activeTab} />
           </div>
           <div className="w-[60%] overflow-hidden">
             {activeTab === 'discussion' ? (
@@ -84,7 +79,7 @@ export default function App() {
                 onCodeChange={handleCodeChange}
                 onSolved={handleSolved}
                 solved={solvedToday || justSolved}
-                showSolution={activeTab === 'solution'}
+                showSolution={false}
               />
             )}
           </div>

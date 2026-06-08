@@ -38,11 +38,20 @@ self.onerror = function(msg) {
 
   var userFn;
   try {
-    var match = userCode.match(/function\\s+(\\w+)/);
-    if (!match) throw new Error('No named function declaration found. Use: function name() {}');
-    var fnName = match[1];
-    var wrapped = new Function(userCode + '\\nreturn ' + fnName + ';');
+    var topLevelNames = [];
+    var re1 = /^(?:var|let|const)\s+(\w+)\s*=\s*function/mg;
+    var re2 = /^function\s+(\w+)/mg;
+    var m;
+    while ((m = re1.exec(userCode)) !== null) topLevelNames.push({ name: m[1], idx: m.index });
+    while ((m = re2.exec(userCode)) !== null) topLevelNames.push({ name: m[1], idx: m.index });
+    topLevelNames.sort(function(a, b) { return a.idx - b.idx; });
+    console.log('[runner] topLevelNames:', JSON.stringify(topLevelNames));
+    if (topLevelNames.length === 0) throw new Error('No named function found at top level.');
+    var fnName = topLevelNames[0].name;
+    console.log('[runner] fnName selected:', fnName);
+    var wrapped = new Function(userCode + '\\nreturn typeof ' + fnName + ' !== "undefined" ? ' + fnName + ' : undefined;');
     userFn = wrapped();
+    console.log('[runner] userFn type:', typeof userFn);
     if (typeof userFn !== 'function') throw new Error('Could not extract function "' + fnName + '"');
   } catch(e) {
     send(testCases.map(function(tc) {

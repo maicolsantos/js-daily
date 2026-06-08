@@ -16,10 +16,39 @@ function deepEqual(a, b) {
   return true;
 }
 
+function parseLeetCodeInput(raw) {
+  // "nums = [1,2], target = 9" -> [[1,2], 9]
+  // If it looks like a plain value (no "name ="), wrap and parse directly
+  if (typeof raw !== 'string') return [raw];
+  var trimmed = raw.trim();
+  // Split on ", <word> =" boundaries
+  var parts = trimmed.split(/,\s*(?=[a-zA-Z_]\w*\s*=)/);
+  if (parts.length === 1 && !/^\w+\s*=/.test(trimmed)) {
+    // No named params — try parse as single value
+    try { return [JSON.parse(trimmed)]; } catch(e) { return [trimmed]; }
+  }
+  return parts.map(function(p) {
+    var eq = p.indexOf('=');
+    var val = eq >= 0 ? p.slice(eq + 1).trim() : p.trim();
+    try { return JSON.parse(val); } catch(e) { return val; }
+  });
+}
+
+function parseLeetCodeExpected(raw) {
+  if (typeof raw !== 'string') return raw;
+  try { return JSON.parse(raw.trim()); } catch(e) { return raw.trim(); }
+}
+
 function runTests(userCode, testCases) {
-  var match = userCode.match(/function\s+(\w+)/);
-  if (!match) throw new Error('No named function found. Use: function name() {}');
-  var fnName = match[1];
+  var topLevelNames = [];
+  var re1 = /^(?:var|let|const)\s+(\w+)\s*=\s*function/mg;
+  var re2 = /^function\s+(\w+)/mg;
+  var _m;
+  while ((_m = re1.exec(userCode)) !== null) topLevelNames.push({ name: _m[1], idx: _m.index });
+  while ((_m = re2.exec(userCode)) !== null) topLevelNames.push({ name: _m[1], idx: _m.index });
+  topLevelNames.sort(function(a, b) { return a.idx - b.idx; });
+  if (topLevelNames.length === 0) throw new Error('No named function found at top level.');
+  var fnName = topLevelNames[0].name;
   // new Function is allowed in sandbox pages (exempt from extension CSP)
   var wrapped = new Function(userCode + '\nreturn ' + fnName + ';');
   var userFn = wrapped();
@@ -39,9 +68,13 @@ function runTests(userCode, testCases) {
         results.push({ passed: typeof ret === 'function', label: tc.label, input: tc.input, expected: tc.expected, received: typeof ret });
         continue;
       } else {
-        received = userFn.apply(null, tc.input);
+        var args = (tc.input.length === 1 && typeof tc.input[0] === 'string')
+          ? parseLeetCodeInput(tc.input[0])
+          : tc.input;
+        received = userFn.apply(null, args);
       }
-      results.push({ passed: deepEqual(received, tc.expected), label: tc.label, input: tc.input, expected: tc.expected, received: received });
+      var expected = parseLeetCodeExpected(tc.expected);
+      results.push({ passed: deepEqual(received, expected), label: tc.label, input: tc.input, expected: expected, received: received });
     } catch(e) {
       results.push({ passed: false, label: tc.label, input: tc.input, expected: tc.expected, received: undefined, error: String(e.message) });
     }
