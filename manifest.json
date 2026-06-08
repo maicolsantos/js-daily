@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "JS Daily",
+  "version": "1.0.0",
+  "description": "A daily JavaScript coding challenge in your new tab",
+  "chrome_url_overrides": { "newtab": "index.html" },
+  "permissions": ["storage"],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
