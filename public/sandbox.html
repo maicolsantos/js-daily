@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<script>
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object') return a === b;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  var keysA = Object.keys(a);
+  var keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (var i = 0; i < keysA.length; i++) {
+    if (!deepEqual(a[keysA[i]], b[keysA[i]])) return false;
+  }
+  return true;
+}
+
+function runTests(userCode, testCases) {
+  var match = userCode.match(/function\s+(\w+)/);
+  if (!match) throw new Error('No named function found. Use: function name() {}');
+  var fnName = match[1];
+  // new Function is allowed in sandbox pages (exempt from extension CSP)
+  var wrapped = new Function(userCode + '\nreturn ' + fnName + ';');
+  var userFn = wrapped();
+  if (typeof userFn !== 'function') throw new Error('Could not extract function "' + fnName + '"');
+
+  var results = [];
+  for (var i = 0; i < testCases.length; i++) {
+    var tc = testCases[i];
+    try {
+      var received;
+      if (tc.input.length === 1 && tc.input[0] === '__COMPOSE_TEST_1__') {
+        received = userFn(function(x) { return x + 1; }, function(x) { return x * 2; })(3);
+      } else if (tc.input.length === 1 && tc.input[0] === '__COMPOSE_TEST_2__') {
+        received = userFn(function(x) { return x.toUpperCase(); }, function(x) { return x.trim(); })('  hello  ');
+      } else if (tc.expected === 'function') {
+        var ret = userFn(function(x){ return x; }, tc.input[1] !== undefined ? tc.input[1] : 100);
+        results.push({ passed: typeof ret === 'function', label: tc.label, input: tc.input, expected: tc.expected, received: typeof ret });
+        continue;
+      } else {
+        received = userFn.apply(null, tc.input);
+      }
+      results.push({ passed: deepEqual(received, tc.expected), label: tc.label, input: tc.input, expected: tc.expected, received: received });
+    } catch(e) {
+      results.push({ passed: false, label: tc.label, input: tc.input, expected: tc.expected, received: undefined, error: String(e.message) });
+    }
+  }
+  return results;
+}
+
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'run') return;
+  var userCode = e.data.userCode;
+  var testCases = e.data.testCases;
+  try {
+    var results = runTests(userCode, testCases);
+    parent.postMessage({ type: 'results', results: results }, '*');
+  } catch(err) {
+    parent.postMessage({ type: 'results', results: testCases.map(function(tc) {
+      return { passed: false, label: tc.label, input: tc.input, expected: tc.expected, received: undefined, error: String(err.message) };
+    })}, '*');
+  }
+});
+</script>
+</html>

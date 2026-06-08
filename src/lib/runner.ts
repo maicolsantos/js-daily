@@ -1,22 +1,26 @@
 import { TestCase, TestResult } from '../types/challenge'
-import { buildRunnerScript } from './testRunner'
 
 const TIMEOUT_MS = 5000
 
+function getSandboxUrl(): string {
+  if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+    return chrome.runtime.getURL('sandbox.html')
+  }
+  return './sandbox.html'
+}
+
 export function runCode(userCode: string, testCases: TestCase[]): Promise<TestResult[]> {
   return new Promise((resolve) => {
-    const script = buildRunnerScript(userCode, testCases)
-    const blob = new Blob([script], { type: 'application/javascript' })
-    const url = URL.createObjectURL(blob)
-    const worker = new Worker(url)
-    URL.revokeObjectURL(url)
+    const iframe = document.createElement('iframe')
+    iframe.style.display = 'none'
+    document.body.appendChild(iframe)
 
     let settled = false
 
     const timer = setTimeout(() => {
       if (settled) return
       settled = true
-      worker.terminate()
+      cleanup()
       resolve(
         testCases.map((tc) => ({
           passed: false,
@@ -29,30 +33,27 @@ export function runCode(userCode: string, testCases: TestCase[]): Promise<TestRe
       )
     }, TIMEOUT_MS)
 
-    worker.onmessage = (e) => {
+    function cleanup() {
+      clearTimeout(timer)
+      window.removeEventListener('message', onMessage)
+      iframe.remove()
+    }
+
+    function onMessage(e: MessageEvent) {
+      if (e.source !== iframe.contentWindow) return
       if (!e.data || e.data.type !== 'results') return
       if (settled) return
       settled = true
-      clearTimeout(timer)
-      worker.terminate()
+      cleanup()
       resolve(e.data.results as TestResult[])
     }
 
-    worker.onerror = (e) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      worker.terminate()
-      resolve(
-        testCases.map((tc) => ({
-          passed: false,
-          label: tc.label,
-          input: tc.input,
-          expected: tc.expected,
-          received: undefined,
-          error: e.message,
-        }))
-      )
+    window.addEventListener('message', onMessage)
+
+    iframe.onload = () => {
+      iframe.contentWindow!.postMessage({ type: 'run', userCode, testCases }, '*')
     }
+
+    iframe.src = getSandboxUrl()
   })
 }

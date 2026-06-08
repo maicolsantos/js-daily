@@ -5,6 +5,12 @@
   "description": "A daily JavaScript coding challenge in your new tab",
   "chrome_url_overrides": { "newtab": "index.html" },
   "permissions": ["storage"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
