@@ -43,14 +43,17 @@ Opens at `http://localhost:5173` for development. Note: `chrome.storage` is unav
 
 ## How It Works
 
-- **Daily challenge** is picked deterministically by hashing today's date mod 10 — same challenge for everyone on the same day.
+- **Daily challenge** is picked deterministically by hashing today's date — same challenge for everyone on the same day.
 - **Code runs in a sandboxed `<iframe>`** via `postMessage` — no `eval()` in the main thread.
 - **Data persists in `chrome.storage.local`**: streak, solved IDs, and your code per challenge.
-- **Solution tab** unlocks after you pass all test cases.
+- **Solution tab** unlocks after you pass all test cases. Shows the problem description when no solution is available yet.
+- **Docs tab** opens [devdocs.io/javascript](https://devdocs.io/javascript/) in the same tab.
+- **Resizable panels** — drag the divider between problem and editor (min 20%, max 80%).
+- **Keyboard shortcut** — `Cmd+Enter` (Mac) / `Ctrl+Enter` (Windows/Linux) runs your code.
 
 ## Tech Stack
 
-- React 18 + TypeScript
+- React 19 + TypeScript
 - Vite
 - Tailwind CSS v3
 - Monaco Editor
