@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Editor from '@monaco-editor/react'
+import Editor, { type OnMount } from '@monaco-editor/react'
 import { Challenge, TestResult } from '../types/challenge'
 import { TestResults } from './TestResults'
 import { runCode } from '../lib/runner'
@@ -20,6 +20,7 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
   const [results, setResults] = useState<TestResult[]>([])
   const [running, setRunning] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleRunRef = useRef<() => void>(() => {})
 
   const defaultCode = lang === 'javascript' ? challenge.starterCode : challenge.starterCodeTS
   const [code, setCode] = useState<string>(savedCode ?? defaultCode)
@@ -36,6 +37,12 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
     debounceRef.current = setTimeout(() => onCodeChange(v), 500)
   }, [onCodeChange])
 
+  const handleMount: OnMount = useCallback((editor, monaco) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      handleRunRef.current()
+    })
+  }, [])
+
   const handleRun = useCallback(async () => {
     setRunning(true)
     setResults([])
@@ -46,6 +53,21 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
       onSolved()
     }
   }, [code, challenge.testCases, onSolved])
+
+  useEffect(() => {
+    handleRunRef.current = () => { if (!running && !showSolution) handleRun() }
+  }, [handleRun, running, showSolution])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (!running && !showSolution) handleRun()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleRun, running, showSolution])
 
   const displayCode = showSolution ? challenge.solution : code
 
@@ -74,6 +96,11 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
             <span className="inline-block w-3 h-3 border-2 border-easy/40 border-t-easy rounded-full animate-spin" />
           )}
           {running ? 'Running…' : 'Run'}
+          {!running && (
+            <span className="text-easy/50 text-xs font-normal">
+              {navigator.platform.includes('Mac') ? '⌘↵' : 'Ctrl+↵'}
+            </span>
+          )}
         </button>
       </div>
 
@@ -82,6 +109,7 @@ export function EditorPanel({ challenge, savedCode, onCodeChange, onSolved, solv
           height="100%"
           language={lang}
           value={displayCode}
+          onMount={handleMount}
           onChange={showSolution ? undefined : handleChange}
           theme="vs-dark"
           options={{
