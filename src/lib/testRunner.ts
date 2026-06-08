@@ -28,6 +28,7 @@ self.onerror = function(msg) {
     var keysB = Object.keys(b);
     if (keysA.length !== keysB.length) return false;
     for (var i = 0; i < keysA.length; i++) {
+      if (!Object.prototype.hasOwnProperty.call(b, keysA[i])) return false;
       if (!deepEqual(a[keysA[i]], b[keysA[i]])) return false;
     }
     return true;

@@ -51,6 +51,8 @@ export function runCode(userCode: string, testCases: TestCase[]): Promise<TestRe
     window.addEventListener('message', onMessage)
 
     iframe.onload = () => {
+      // sandbox.html has null origin (MV3 sandboxed page) — must use '*'.
+      // Safety: onMessage already guards with `e.source !== iframe.contentWindow`.
       iframe.contentWindow!.postMessage({ type: 'run', userCode, testCases }, '*')
     }
 

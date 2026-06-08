@@ -46,35 +46,39 @@ export function useStorage() {
   }, [])
 
   const update = useCallback(async (partial: Partial<StorageData>) => {
-    const next = { ...data, ...partial }
+    const current = await storageGet()
+    const next = { ...current, ...partial }
     setData(next)
     await storageSet(next)
-  }, [data])
+  }, [])
 
   const saveCode = useCallback(async (challengeId: string, code: string) => {
-    const next: StorageData = { ...data, code: { ...data.code, [challengeId]: code } }
+    const current = await storageGet()
+    const next: StorageData = { ...current, code: { ...current.code, [challengeId]: code } }
     setData(next)
     await storageSet(next)
-  }, [data])
+  }, [])
 
   const markSolved = useCallback(async (challengeId: string) => {
+    const current = await storageGet()
     const today = new Date().toDateString()
-    const alreadySolved = data.solvedIds.includes(challengeId)
-    if (alreadySolved) return
+    if (current.solvedIds.includes(challengeId)) return
 
-    const lastDate = data.lastSolvedDate
     const yesterday = new Date(Date.now() - 86400000).toDateString()
-    const newStreak = lastDate === yesterday || lastDate === today ? data.streak + 1 : 1
+    const newStreak =
+      current.lastSolvedDate === yesterday || current.lastSolvedDate === today
+        ? current.streak + 1
+        : 1
 
     const next: StorageData = {
-      ...data,
+      ...current,
       streak: newStreak,
       lastSolvedDate: today,
-      solvedIds: [...data.solvedIds, challengeId],
+      solvedIds: [...current.solvedIds, challengeId],
     }
     setData(next)
     await storageSet(next)
-  }, [data])
+  }, [])
 
   return { data, loaded, update, saveCode, markSolved }
 }
